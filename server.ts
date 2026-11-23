@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, ThinkingLevel, type GenerateContentParameters, type GenerateContentResponse } from '@google/genai';
-import type { ActionItem } from './src/types/gtd';
-import type { AiOperation, WorkspaceContextSnapshot } from './src/utils/aiAgentOperations';
+import type { ActionItem } from './src/types/gtd.ts';
+import type { AiOperation, WorkspaceContextSnapshot } from './src/utils/aiAgentOperations.ts';
 import {
   IdempotencyLedger,
   detectAmbiguityOrConflict,
@@ -13,12 +13,12 @@ import {
   prioritizeQueueServer,
   validateAndApplyActions,
   verifyFirebaseIdToken,
-} from './src/utils/serverQueueAndApply';
+} from './src/utils/serverQueueAndApply.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const applyLedger = new IdempotencyLedger(2000, 30 * 60 * 1000);
 
 function getFirebaseProjectId(): string {
@@ -119,6 +119,15 @@ async function generateWithRetry(
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
+
+  app.get('/api/health', (_req, res) => {
+    res.json({
+      ok: true,
+      service: 'trackflow',
+      env: process.env.NODE_ENV || 'development',
+      firebaseProjectId: FIREBASE_PROJECT_ID,
+    });
+  });
 
   // Feature 5: AI Predictive Scheduling + Contextual Automation + Alarms
   app.post('/api/ai/suggest', async (req, res) => {
@@ -539,6 +548,9 @@ async function startServer() {
   } else {
     const distDir = path.resolve(__dirname, 'dist');
     app.use(express.static(distDir));
+    app.all('/api/*', (_req, res) => {
+      res.status(404).json({ error: 'API route not found.' });
+    });
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distDir, 'index.html'));
     });

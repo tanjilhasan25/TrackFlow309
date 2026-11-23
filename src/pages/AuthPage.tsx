@@ -1,8 +1,66 @@
 import React, { useState } from 'react';
-import { ArrowRight, MailCheck, RefreshCw } from 'lucide-react';
+import { ArrowRight, Check, Copy, ExternalLink, MailCheck, RefreshCw } from 'lucide-react';
 import { useTrackFlow } from '../context/TrackFlowContext';
+import { firebaseProjectId } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+
+function formatAuthError(err: unknown): { message: string; unauthorizedDomain: boolean } {
+  const code =
+    err && typeof err === 'object' && 'code' in err ? String((err as { code?: unknown }).code ?? '') : '';
+  const raw = err instanceof Error ? err.message : 'Authentication failed.';
+
+  if (code === 'auth/unauthorized-domain' || raw.includes('auth/unauthorized-domain')) {
+    return {
+      unauthorizedDomain: true,
+      message:
+        'Google Sign-In blocked this domain because it is not listed in Firebase Console -> Authentication -> Settings -> Authorized domains.',
+    };
+  }
+  if (code === 'auth/operation-not-allowed' || raw.includes('auth/operation-not-allowed')) {
+    return {
+      unauthorizedDomain: false,
+      message:
+        'Email/Password sign-in is not yet enabled in Firebase Console (Authentication -> Sign-in method -> Email/Password). You can use Google Sign-In or Explore Demo Workspace right now.',
+    };
+  }
+  if (code === 'auth/popup-blocked' || raw.includes('auth/popup-blocked')) {
+    return {
+      unauthorizedDomain: false,
+      message: 'Browser blocked the Google sign-in popup. Please allow popups for this site and try again.',
+    };
+  }
+  if (code === 'auth/popup-closed-by-user' || raw.includes('auth/popup-closed-by-user')) {
+    return {
+      unauthorizedDomain: false,
+      message: 'Google sign-in popup was closed before finishing. Please try again.',
+    };
+  }
+  if (code === 'auth/email-already-in-use' || raw.includes('auth/email-already-in-use')) {
+    return {
+      unauthorizedDomain: false,
+      message: 'An account with this email already exists. Switch to Sign In instead.',
+    };
+  }
+  if (
+    code === 'auth/invalid-credential' ||
+    code === 'auth/wrong-password' ||
+    code === 'auth/user-not-found' ||
+    raw.includes('auth/invalid-credential')
+  ) {
+    return {
+      unauthorizedDomain: false,
+      message: 'Incorrect email or password. Please check your credentials and try again.',
+    };
+  }
+  if (code === 'auth/weak-password' || raw.includes('auth/weak-password')) {
+    return {
+      unauthorizedDomain: false,
+      message: 'Password must be at least 6 characters long.',
+    };
+  }
+  return { unauthorizedDomain: false, message: raw };
+}
 
 export function AuthPage() {
   const {
@@ -22,11 +80,28 @@ export function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const currentHostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const firebaseAuthSettingsUrl = `https://console.firebase.google.com/project/${firebaseProjectId}/authentication/settings`;
+
+  const handleCopyHostname = async () => {
+    if (!currentHostname || typeof navigator === 'undefined' || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(currentHostname);
+      setCopiedDomain(true);
+      setTimeout(() => setCopiedDomain(false), 2000);
+    } catch {
+      // Clipboard blocked in restricted iframe
+    }
+  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setIsUnauthorizedDomain(false);
     setLoading(true);
     try {
       if (tab === 'login') {
@@ -40,14 +115,9 @@ export function AuthPage() {
         await registerWithEmail(name, email, password);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Authentication failed.';
-      if (msg.includes('auth/operation-not-allowed')) {
-        setErrorMsg(
-          'Email/Password sign-in is not yet enabled in Firebase Console (Authentication -> Sign-in method -> Email/Password). You can use Google Sign-In or Explore Demo Workspace right now.',
-        );
-      } else {
-        setErrorMsg(msg);
-      }
+      const formatted = formatAuthError(err);
+      setErrorMsg(formatted.message);
+      setIsUnauthorizedDomain(formatted.unauthorizedDomain);
     } finally {
       setLoading(false);
     }
@@ -55,11 +125,14 @@ export function AuthPage() {
 
   const handleGoogle = async () => {
     setErrorMsg('');
+    setIsUnauthorizedDomain(false);
     setLoading(true);
     try {
       await signInWithGoogle();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Google sign-in failed.');
+      const formatted = formatAuthError(err);
+      setErrorMsg(formatted.message);
+      setIsUnauthorizedDomain(formatted.unauthorizedDomain);
     } finally {
       setLoading(false);
     }
@@ -145,8 +218,39 @@ export function AuthPage() {
             </div>
 
             {errorMsg && (
-              <div className="rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 p-3 text-xs text-red-700 dark:text-red-300 leading-relaxed">
-                {errorMsg}
+              <div className="rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 p-3 text-xs text-red-700 dark:text-red-300 leading-relaxed space-y-2">
+                <p>{errorMsg}</p>
+                {isUnauthorizedDomain && currentHostname && (
+                  <div className="pt-1 space-y-2 border-t border-red-200/70 dark:border-red-900/50">
+                    <div className="flex items-center justify-between gap-2 rounded bg-white/80 dark:bg-slate-900/80 px-2 py-1.5 border border-red-200 dark:border-red-900/50">
+                      <code className="font-mono text-[11px] text-slate-800 dark:text-slate-200 truncate">
+                        {currentHostname}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={handleCopyHostname}
+                        className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium bg-red-100 hover:bg-red-200 dark:bg-red-900/60 dark:hover:bg-red-900 text-red-800 dark:text-red-200 shrink-0 cursor-pointer"
+                      >
+                        {copiedDomain ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        <span>{copiedDomain ? 'Copied' : 'Copy Domain'}</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <a
+                        href={firebaseAuthSettingsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium underline hover:no-underline"
+                      >
+                        <span>Add in Firebase Auth Settings</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <span className="text-[11px] opacity-85">
+                        Or sign in with Email / Explore Demo below
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

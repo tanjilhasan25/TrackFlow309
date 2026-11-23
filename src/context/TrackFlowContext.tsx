@@ -338,6 +338,21 @@ export function TrackFlowProvider({ children }: { children: React.ReactNode }) {
       updatedAt: serverTimestamp(),
     });
 
+    const starterContexts = ['@Computer', '@Deep Work', '@Calls', '@Errands'];
+    starterContexts.forEach((ctxName, idx) => {
+      const ctxId = `ctx_${user.uid.slice(0, 8)}_${idx}`;
+      batch.set(doc(db, 'contexts', ctxId), {
+        userId: user.uid,
+        workspaceId: personalWsId,
+        memberIds: [user.uid],
+        name: ctxName,
+        position: idx,
+        state: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+
     try {
       await batch.commit();
     } catch (err) {
@@ -386,8 +401,14 @@ export function TrackFlowProvider({ children }: { children: React.ReactNode }) {
         setMode('unverified');
         return;
       }
-      await ensureFirebaseUserBootstrapped(user);
-      setMode('firebase');
+      try {
+        await ensureFirebaseUserBootstrapped(user);
+        setMode('firebase');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unable to initialize your workspace.';
+        toast.error(msg);
+        setMode('unauthenticated');
+      }
     });
 
     return () => unsub();

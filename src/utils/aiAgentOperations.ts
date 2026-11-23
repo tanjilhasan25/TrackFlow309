@@ -8,7 +8,7 @@ import type {
   ReviewType,
   UserProfile,
   UserRole,
-} from '../types/gtd';
+} from '../types/gtd.ts';
 import {
   BOUNDARIES,
   clampString,
@@ -18,7 +18,7 @@ import {
   normalizeToUtcIso,
   parseUtcMs,
   sortFocusActions,
-} from './gtdLogic';
+} from './gtdLogic.ts';
 
 // AI is STRICTLY PROPOSE-ONLY. It never returns 'execute'.
 export type AiChatStage = 'answer' | 'clarify' | 'propose';

@@ -4,7 +4,7 @@ import type {
   InboxItem,
   ProjectItem,
   UserRole,
-} from '../types/gtd';
+} from '../types/gtd.ts';
 
 export const BOUNDARIES = {
   NAME_MAX: 100,

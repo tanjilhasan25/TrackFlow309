@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
-import type { ActionItem, ContextItem, InboxItem, ProjectItem, UserRole } from '../types/gtd';
+import type { ActionItem, ContextItem, InboxItem, ProjectItem, UserRole } from '../types/gtd.ts';
 import {
   calculatePriorityScore,
   normalizeToUtcIso,
   parseUtcMs,
   sortFocusActions,
-} from './gtdLogic';
+} from './gtdLogic.ts';
 import {
   buildOperationPreviews,
   type AiChatResponsePayload,
@@ -13,7 +13,7 @@ import {
   type OperationPreview,
   type WorkspaceContextSnapshot,
   validateAndFilterOperations,
-} from './aiAgentOperations';
+} from './aiAgentOperations.ts';
 
 export interface VerifiedFirebaseClaims {
   uid: string;
