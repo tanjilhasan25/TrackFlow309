@@ -1,0 +1,191 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile, active workspace role, and preferences.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "role": { "type": "string", "enum": ["individual", "collaborator", "admin"] },
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "preferences": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "role", "workspaceId", "preferences", "createdAt", "updatedAt"]
+    },
+    "Workspace": {
+      "title": "Workspace",
+      "description": "Collaborative or personal workspace container managed by a Workspace Admin.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "adminId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "memberIds": { "type": "array", "description": "Bounded list of workspace member UIDs (max 25)." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "adminId", "memberIds", "createdAt", "updatedAt"]
+    },
+    "WorkspaceMember": {
+      "title": "WorkspaceMember",
+      "description": "Authoritative role binding for a user inside a workspace.",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "adminId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "role": { "type": "string", "enum": ["individual", "collaborator", "admin"] },
+        "inviteId": { "type": "string", "maxLength": 128 },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["workspaceId", "userId", "adminId", "name", "email", "role", "inviteId", "joinedAt"]
+    },
+    "WorkspaceInvite": {
+      "title": "WorkspaceInvite",
+      "description": "Invitation created by Workspace Admin to onboard a Team Collaborator.",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "workspaceName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "adminId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "invitedEmail": { "type": "string", "format": "email", "maxLength": 254 },
+        "role": { "type": "string", "enum": ["collaborator"] },
+        "status": { "type": "string", "enum": ["pending", "accepted", "revoked"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["workspaceId", "workspaceName", "adminId", "invitedEmail", "role", "status", "createdAt"]
+    },
+    "Context": {
+      "title": "Context",
+      "description": "GTD Context (@Computer, @Home, @Calls, etc.) scoped to a user or workspace.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "memberIds": { "type": "array", "description": "Bounded list of workspace members who can read this context (max 25)." },
+        "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "position": { "type": "integer" },
+        "state": { "type": "string", "enum": ["active", "hidden"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "workspaceId", "memberIds", "name", "position", "state", "createdAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "GTD Project with lifecycle state and optional shared collaborators.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "collaboratorIds": { "type": "array", "description": "Bounded list of invited collaborator UIDs (max 25)." },
+        "name": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "state": { "type": "string", "enum": ["active", "hidden", "completed"] },
+        "defaultContextId": { "type": "string", "maxLength": 128 },
+        "isShared": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "workspaceId", "collaboratorIds", "name", "description", "state", "defaultContextId", "isShared", "createdAt", "updatedAt"]
+    },
+    "Action": {
+      "title": "Action",
+      "description": "GTD Next Action with context, priority score, due date, and alarm time.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectCollaboratorIds": { "type": "array", "description": "Bounded list of collaborator UIDs from parent project (max 25)." },
+        "contextId": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 280 },
+        "status": { "type": "string", "enum": ["active", "completed", "deferred"] },
+        "dueDate": { "type": "string", "maxLength": 40 },
+        "deferredUntil": { "type": "string", "maxLength": 40 },
+        "starred": { "type": "boolean" },
+        "priorityScore": { "type": "number" },
+        "tags": { "type": "array", "description": "Up to 10 short tag strings." },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "alarmTime": { "type": "string", "maxLength": 40 },
+        "estimatedMinutes": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "workspaceId", "projectId", "projectCollaboratorIds", "contextId", "description", "status", "starred", "priorityScore", "tags", "notes", "createdAt", "updatedAt"]
+    },
+    "InboxItem": {
+      "title": "InboxItem",
+      "description": "Captured raw thought awaiting sequential GTD Inbox clarification.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "content": { "type": "string", "minLength": 1, "maxLength": 280 },
+        "processed": { "type": "boolean" },
+        "disposition": { "type": "string", "enum": ["pending", "action", "project", "someday", "trash"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "workspaceId", "content", "processed", "disposition", "createdAt", "updatedAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Completed personal or team Weekly Review record with notes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "workspaceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "memberIds": { "type": "array", "description": "Bounded list of workspace member UIDs (max 25)." },
+        "type": { "type": "string", "enum": ["personal", "team"] },
+        "notes": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "workspaceId", "memberIds", "type", "notes", "completedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile and active role settings, strictly readable/writable by the owning user."
+    },
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/Workspace" },
+      "description": "Workspace documents owned by a Workspace Admin."
+    },
+    "/workspaces/{workspaceId}/members/{memberId}": {
+      "schema": { "$ref": "#/entities/WorkspaceMember" },
+      "description": "Subcollection of workspace members and their assigned roles."
+    },
+    "/workspaces/{workspaceId}/invites/{inviteId}": {
+      "schema": { "$ref": "#/entities/WorkspaceInvite" },
+      "description": "Pending and processed invitations for Team Collaborators."
+    },
+    "/contexts/{contextId}": {
+      "schema": { "$ref": "#/entities/Context" },
+      "description": "GTD contexts for filtering actions."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "GTD projects (personal or shared inside a workspace)."
+    },
+    "/actions/{actionId}": {
+      "schema": { "$ref": "#/entities/Action" },
+      "description": "GTD next actions (personal or inside shared projects)."
+    },
+    "/inboxItems/{itemId}": {
+      "schema": { "$ref": "#/entities/InboxItem" },
+      "description": "Quick-capture inbox thoughts owned by the capturing user."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Completed personal or team weekly review records."
+    }
+  }
+}

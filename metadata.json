@@ -1,0 +1,6 @@
+{
+  "name": "TrackFlow",
+  "description": "Advanced multi-user GTD productivity workspace with smart inbox processing, focus prioritization, guided weekly reviews, and AI predictive scheduling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
